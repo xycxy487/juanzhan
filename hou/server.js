@@ -200,8 +200,24 @@ app.get('/api/class/stats', async (req, res) => {
              GROUP BY cr2.student_id
              HAVING SUM(cr2.amount) < 800.00
            )
+           OR EXISTS (
+              SELECT 1
+              FROM (
+                -- 计算每个学生的餐饮消费占比
+                SELECT 
+                  cr3.student_id,
+                  SUM(CASE WHEN cr3.category = '餐饮' THEN cr3.amount ELSE 0 END) as food_amount,
+                  SUM(cr3.amount) as total_amount
+                FROM consume_records cr3
+                WHERE DATE_FORMAT(cr3.record_date, "%Y-%m") = ?
+                GROUP BY cr3.student_id
+              ) as sub
+              WHERE sub.student_id = cr.student_id
+              AND sub.total_amount > 0  -- 避免除零错误
+              AND (sub.food_amount / sub.total_amount) < 0.10
+            )
          )`,
-        [className, month, month]  // 两个month参数
+        [className, month, month,month]  // 两个month参数
       );
 
       res.json({
@@ -316,25 +332,58 @@ app.get('/api/class/abnormal-details', async (req, res) => {
       const classAvgConsume = avgRows[0]?.avg_consume || 0;
 
       // 2. 查询异常消费学生详情
-      const [abnormalRows] = await connection.execute(
-        `SELECT 
-          u.student_id,
-          u.name,
-          SUM(cr.amount) as month_consume,
-          COUNT(*) as consume_count,
-          MAX(cr.amount) as max_single_amount,
-          GROUP_CONCAT(DISTINCT cr.category SEPARATOR ',') as categories
-         FROM consume_records cr
-         INNER JOIN users u ON cr.student_id = u.student_id
-         WHERE u.class_name = ?
-         AND DATE_FORMAT(cr.record_date, "%Y-%m") = ?
-         GROUP BY u.student_id, u.name
-         HAVING (
-           MAX(cr.amount) > 300.00
-           OR SUM(cr.amount) < 800.00
-         )`,
-        [className, month]
-      );
+      // const [abnormalRows] = await connection.execute(
+      //   `SELECT 
+      //     u.student_id,
+      //     u.name,
+      //     SUM(cr.amount) as month_consume,
+      //     COUNT(*) as consume_count,
+      //     MAX(cr.amount) as max_single_amount,
+      //     GROUP_CONCAT(DISTINCT cr.category SEPARATOR ',') as categories
+      //    FROM consume_records cr
+      //    INNER JOIN users u ON cr.student_id = u.student_id
+      //    WHERE u.class_name = ?
+      //    AND DATE_FORMAT(cr.record_date, "%Y-%m") = ?
+      //    GROUP BY u.student_id, u.name
+      //    HAVING (
+      //      MAX(cr.amount) > 300.00
+      //      OR SUM(cr.amount) < 800.00
+      //    )`,
+      //   [className, month]
+      // );
+      // 2. 查询异常消费学生详情
+const [abnormalRows] = await connection.execute(
+  `SELECT 
+    u.student_id,
+    u.name,
+    SUM(cr.amount) as month_consume,
+    COUNT(*) as consume_count,
+    MAX(cr.amount) as max_single_amount,
+    GROUP_CONCAT(DISTINCT cr.category SEPARATOR ',') as categories,
+    -- 新增：计算餐饮消费金额
+    SUM(CASE WHEN cr.category = '餐饮' THEN cr.amount ELSE 0 END) as food_amount,
+    -- 新增：计算餐饮消费占比（百分比）
+    CASE 
+      WHEN SUM(cr.amount) > 0 THEN 
+        ROUND(SUM(CASE WHEN cr.category = '餐饮' THEN cr.amount ELSE 0 END) / SUM(cr.amount) * 100, 2)
+      ELSE 0 
+    END as food_percentage
+   FROM consume_records cr
+   INNER JOIN users u ON cr.student_id = u.student_id
+   WHERE u.class_name = ?
+   AND DATE_FORMAT(cr.record_date, "%Y-%m") = ?
+   GROUP BY u.student_id, u.name
+   HAVING (
+     MAX(cr.amount) > 300.00
+     OR SUM(cr.amount) < 800.00
+     OR (
+       -- 新增条件：餐饮消费占比小于10%
+       SUM(cr.amount) > 0 
+       AND (SUM(CASE WHEN cr.category = '餐饮' THEN cr.amount ELSE 0 END) / SUM(cr.amount)) < 0.10
+     )
+   )`,
+  [className, month]
+);
 
       // 3. 计算每个学生的餐饮消费占比
       const students = await Promise.all(abnormalRows.map(async (row) => {
@@ -367,7 +416,7 @@ app.get('/api/class/abnormal-details', async (req, res) => {
         } else if (row.month_consume < 800) {
           alertType = '月总消费过低';
         } else {
-          alertType = '异常波动';
+          alertType = '餐饮消费占比过低';
         }
 
         return {
