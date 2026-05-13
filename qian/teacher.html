@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园一卡通消费分析系统 - 老师端</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 导航栏 -->
+        <nav class="navbar">
+            <div class="logo">
+                <i class="fas fa-credit-card"></i>
+                <span>校园一卡通消费分析系统 - 老师端</span>
+            </div>
+            <div class="nav-right">
+                <div class="user-info" id="teacherInfo">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    <span>老师 | 班主任</span>
+                </div>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> 退出登录
+                </button>
+            </div>
+        </nav>
+
+        <!-- 主要内容区 -->
+        <div class="main-content">
+            <div class="row mb-4">
+                <div class="col">
+                    <h2>班级消费分析概览</h2>
+                </div>
+                <div class="col text-right">
+                    <select id="classSelect" class="form-control" style="width: 200px; display: inline-block;">
+                        <option value="class1">计算机1班</option>
+                        <option value="class2">计算机2班</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 班级统计卡片 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <i class="fas fa-users" style="font-size: 2rem; color: #667eea;"></i>
+                    <div class="stat-value">加载中...</div>
+                    <div class="stat-label">班级总人数</div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-money-bill-wave" style="font-size: 2rem; color: #4BC0C0;"></i>
+                    <div class="stat-value">加载中...</div>
+                    <div class="stat-label">班级月总消费</div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-user-graduate" style="font-size: 2rem; color: #FF6384;"></i>
+                    <div class="stat-value">加载中...</div>
+                    <div class="stat-label">人均月消费</div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #FF9F40;"></i>
+                    <div class="stat-value">加载中...</div>
+                    <div class="stat-label">异常消费预警</div>
+                </div>
+            </div>
+
+            <!-- 班级数据分析 -->
+            <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-chart-bar"></i> 班级消费对比</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="classChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-chart-pie"></i> 班级消费类别分布</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="classCategoryChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 异常消费预警 -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-exclamation-circle"></i> 异常消费预警</h3>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>学号</th>
+                                <th>姓名</th>
+                                <th>本月消费</th>
+                                <th>人均对比</th>
+                                <th>餐饮占比</th>
+                                <th>预警类型</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alertTable">
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td class="text-danger"></td>
+                                <td></td>
+                                <td></td>
+                                <td><span class="badge badge-danger"></span></td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 学生消费排名 -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-trophy"></i> 学生消费排行榜（本月）</h3>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <div class="card" style="border: 1px solid #e1e5e9;">
+                            <div class="card-header" style="background: #fff3cd; border-bottom: 1px solid #e1e5e9;">
+                                <h4><i class="fas fa-crown" style="color: #FFD700;"></i> 消费最高 TOP 5</h4>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>排名</th>
+                                            <th>学号</th>
+                                            <th>姓名</th>
+                                            <th>消费金额</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="topSpenders">
+                                        <!-- 动态生成 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="card" style="border: 1px solid #e1e5e9;">
+                            <div class="card-header" style="background: #d4edda; border-bottom: 1px solid #e1e5e9;">
+                                <h4><i class="fas fa-leaf" style="color: #28a745;"></i> 消费最低 TOP 5</h4>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>排名</th>
+                                            <th>学号</th>
+                                            <th>姓名</th>
+                                            <th>消费金额</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lowSpenders">
+                                        <!-- 动态生成 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 消费报告生成 -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-file-export"></i> 消费报告生成</h3>
+                </div>
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="form-group">
+                            <label>选择报告月份</label>
+                            <input type="month" id="reportMonth" class="form-control" value="2026-03">
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group">
+                            <label>报告类型</label>
+                            <select id="reportType" class="form-control">
+                                <option value="summary">班级消费汇总报告</option>
+                                <option value="detail">详细消费分析报告</option>
+                                <option value="comparison">班级对比报告</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <button class="btn btn-primary" onclick="generateReport()" style="margin-top: 1.8rem;">
+                            <i class="fas fa-download"></i> 生成并下载报告
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 简单的模态框 -->
+    <div id="simpleModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
+        <div style="background:white; margin:50px auto; padding:20px; width:80%; max-width:600px; border-radius:5px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3>消费详情</h3>
+            <button onclick="closeSimpleModal()" style="background:none; border:none; font-size:20px; cursor:pointer;">×</button>
+            </div>
+            <div id="simpleModalBody"></div>
+        </div>
+    </div>
+
+
+    <script src="script.js"></script>
+    <script>
+        // 从本地存储获取老师信息
+        let currentTeacher = JSON.parse(localStorage.getItem('currentUser')) || {};
+        
+        // 如果没有登录信息，跳回登录页
+        if (!currentTeacher.id || currentTeacher.role !== 'teacher') {
+            window.location.href = 'index.html';
+        }
+
+        // 更新页面老师信息
+        document.getElementById('teacherInfo').innerHTML = `
+            <i class="fas fa-chalkboard-teacher"></i>
+            <span>${currentTeacher.name} | ${currentTeacher.className}</span>
+        `;
+
+        async function getClassData(className = '计算机1班') {
+        try {
+            // 调用后端接口 - 使用正确的 URL
+            const response = await fetch(`http://localhost:3000/api/class/stats?className=${encodeURIComponent(className)}`);
+            
+            if (!response.ok) {
+            throw new Error(`HTTP 错误: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+            return data.data;
+            } else {
+            console.log('接口返回失败');
+            }
+        } catch (error) {
+            console.log('网络错误', error.message);
+        }
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            const classData = await getClassData('计算机1班');
+            if (classData) {
+                // 更新统计卡片
+                const statCards = document.querySelectorAll('.stat-card');
+                if (statCards.length >= 4) {
+                statCards[0].querySelector('.stat-value').textContent = `${classData.totalStudents}人`;
+                statCards[1].querySelector('.stat-value').textContent = `¥${classData.totalConsume}`;
+                statCards[2].querySelector('.stat-value').textContent = `¥${classData.avgConsume}`;
+                statCards[3].querySelector('.stat-value').textContent = `${classData.abnormalCount}人`;
+                }
+            }
+            await initClassComparisonChart();
+            await initClassCategoryChart('计算机1班');
+            await loadAbnormalAlerts('计算机1班');
+            await loadStudentRanking('计算机1班');
+        });
+
+        // 班级切换功能
+        document.getElementById('classSelect').addEventListener('change', async function(e) {
+            const selectedValue = e.target.value;
+            let className = '计算机1班';
+            if (selectedValue === 'class1') {
+            className = '计算机1班';
+            } else if (selectedValue === 'class2') {
+            className = '计算机2班';
+            }
+            
+            const classData = await getClassData(className);
+            if (classData) {
+            const statCards = document.querySelectorAll('.stat-card');
+            if (statCards.length >= 4) {
+                statCards[0].querySelector('.stat-value').textContent = `${classData.totalStudents}人`;
+                statCards[1].querySelector('.stat-value').textContent = `¥${classData.totalConsume}`;
+                statCards[2].querySelector('.stat-value').textContent = `¥${classData.avgConsume}`;
+                statCards[3].querySelector('.stat-value').textContent = `${classData.abnormalCount}人`;
+            }
+            }
+            // 更新消费图表
+            await initClassCategoryChart(className);
+            await loadAbnormalAlerts(className);
+            await loadStudentRanking(className);
+        });
+
+       // 初始化班级消费对比图表
+        async function initClassComparisonChart() {
+            const ctx = document.getElementById('classChart').getContext('2d');
+            
+            try {
+                // 1. 获取计算机1班数据
+                const class1Data = await getClassData('计算机1班');
+                
+                // 2. 获取计算机2班数据
+                const class2Data = await getClassData('计算机2班');
+                
+                // 3. 准备图表数据
+                const labels = ['计算机1班', '计算机2班'];
+                const data = [
+                    class1Data.totalConsume,  
+                    class2Data.totalConsume   
+                ];
+                
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '月总消费 (元)',
+                            data: data,
+                            backgroundColor: [
+                                'rgba(54, 162, 235, 0.6)',  // 蓝色 - 1班
+                                'rgba(255, 99, 132, 0.6)'   // 红色 - 2班
+                            ],
+                            borderColor: [
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 99, 132, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: '班级消费对比（2026-03）'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '¥' + value.toFixed(2);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+            } catch (error) {
+                console.error('初始化图表失败:', error);
+            }
+        }
+
+        let classCategoryChartInstance = null;
+
+        async function initClassCategoryChart(className = '计算机1班') {
+            console.log('initClassCategoryChart 被调用，参数 className:', className);
+            
+            const canvas = document.getElementById('classCategoryChart');
+            if (!canvas) {
+                console.error('❌ 找不到 Canvas 元素');
+                return;
+            }
+            
+            const ctx = canvas.getContext('2d');
+            
+            // 销毁旧图表
+            if (classCategoryChartInstance) {
+                console.log('销毁之前的图表实例');
+                classCategoryChartInstance.destroy();
+                classCategoryChartInstance = null;
+            }
+            
+            try {
+                const response = await fetch(`http://localhost:3000/api/class/categories?className=${encodeURIComponent(className)}`);
+            
+                const data = await response.json();
+                
+                let categoryData = {};
+                
+                if (data.success && data.data && Object.keys(data.data).length > 0) {
+                    categoryData = data.data;
+                } else {
+                    console.log('接口返回无数据');
+                }
+                
+                const labels = Object.keys(categoryData);
+                const dataValues = Object.values(categoryData);
+                const total = dataValues.reduce((sum, value) => sum + value, 0);
+                
+                classCategoryChartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: dataValues,
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.6)',
+                                'rgba(54, 162, 235, 0.6)',
+                                'rgba(255, 206, 86, 0.6)',
+                                'rgba(75, 192, 192, 0.6)',
+                                'rgba(153, 102, 255, 0.6)',
+                                'rgba(255, 159, 64, 0.6)'
+                            ],
+                            borderColor: [
+                                'rgba(255, 99, 132, 1)',
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 206, 86, 1)',
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(153, 102, 255, 1)',
+                                'rgba(255, 159, 64, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: { font: { size: 12 } }
+                            },
+                            title: {
+                                display: true,
+                                text: `${className}消费类别分布`,
+                                font: { size: 16 }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.raw || 0;
+                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+                                        return `${label}: ¥${parseFloat(value || 0).toFixed(2)} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                console.log('✅ 新图表创建成功');
+                
+            } catch (error) {
+                console.error('❌ 图表初始化失败:', error);
+            }
+        }
+
+        async function loadAbnormalAlerts(className = '计算机1班', month = '2026-03') {
+        try {
+            console.log(`正在加载 ${className} 的异常消费预警数据...`);
+            
+            // 调用新的接口
+            const response = await fetch(
+            `http://localhost:3000/api/class/abnormal-details?className=${encodeURIComponent(className)}&month=${month}`
+            );
+            
+            if (!response.ok) {
+            throw new Error(`HTTP错误: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            if (!result.success) {
+            console.error("获取异常消费数据失败:", result.message);
+            return;
+            }
+
+            // 渲染表格
+            const tbody = document.getElementById("alertTable");
+            tbody.innerHTML = ""; // 清空原有内容
+
+            if (!result.data || result.data.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                <td colspan="7" class="text-center text-muted">
+                    本月无异常消费预警
+                </td>
+                </tr>
+            `;
+            return;
+            }
+
+            result.data.forEach((item) => {
+            const row = document.createElement("tr");
+            
+            // 根据预警类型设置样式
+            let textClass = "";
+            let badgeClass = "";
+            
+            if (item.alert_type.includes("过高") || item.alert_type === "严重异常") {
+                textClass = "text-danger";
+                badgeClass = "badge-danger";
+            } else if (item.alert_type.includes("过低")) {
+                textClass = "text-warning";
+                badgeClass = "badge-warning";
+            } else {
+                textClass = "text-info";
+                badgeClass = "badge-info";
+            }
+
+            row.innerHTML = `
+            <td>${item.student_id || ""}</td>
+            <td>${item.name || ""}</td>
+            <td class="${textClass}">¥${
+                item.month_consume === null || item.month_consume === undefined || item.month_consume === "" 
+                ? "0.00" 
+                : parseFloat(item.month_consume).toFixed(2)
+            }</td>
+            <td>${item.avg_compare || "0%"}</td>
+            <td>${item.food_ratio || "0%"}</td>
+            <td><span class="badge ${badgeClass}">${item.alert_type || "其他"}</span></td>
+            <td>
+                <button class="btn btn-primary btn-sm" onclick="viewDetail('${item.student_id}')">查看详情</button>               
+                <button class="btn btn-secondary btn-sm" onclick="contactStudent('${item.student_id}','${item.name}')">联系</button>
+            </td>
+            `;
+          
+            tbody.appendChild(row);
+            });
+
+            console.log(`✅ ${className} 的异常消费预警数据加载完成，共 ${result.data.length} 条记录`);
+
+        } catch (error) {
+            console.error('❌ 加载异常消费数据失败:', error);
+            
+            const tbody = document.getElementById("alertTable");
+            tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center text-danger">
+                数据加载失败: ${error.message}
+                </td>
+            </tr>
+            `;
+        }
+        }
+
+        async function viewDetail(studentId) {
+            const modal = document.getElementById('simpleModal');
+            const body = document.getElementById('simpleModalBody');
+            
+            body.innerHTML = '<p>加载中...</p>';
+            modal.style.display = 'block';
+            
+            try {
+                const response = await fetch(`http://localhost:3000/api/student/consume/detail?studentId=${studentId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                let html = `<h4>${data.data.student_id} - 消费详情</h4>`;
+                
+                // 显示月度统计
+                html += `
+                    <div style="margin-bottom: 15px; padding: 10px; background: ${
+                    data.data.is_month_low ? '#fff3e0' : '#f8f9fa'
+                    }; border-radius: 5px; border-left: 4px solid ${
+                    data.data.is_month_low ? '#fd7e14' : '#007bff'
+                    };">
+                    <strong>本月统计：</strong>
+                    月总消费: ¥${data.data.month_total} | 
+                    状态: <span style="color: ${
+                        data.data.is_month_low ? '#dc3545' : '#28a745'
+                    }; font-weight: bold;">${
+                        data.data.is_month_low ? '月消费过低' : '正常'
+                    }</span>
+                    </div>
+                `;
+                
+                // 显示异常统计
+                if (data.data.summary.abnormal_count > 0) {
+                    html += `
+                    <div style="margin-bottom: 15px; padding: 10px; background: #ffeaea; border-radius: 5px;">
+                        <strong>异常统计：</strong>
+                        异常记录数: ${data.data.summary.abnormal_count}条 | 
+                        异常总额: ¥${data.data.summary.total_amount} |
+                        异常类型: ${data.data.summary.abnormal_types.join(', ')}
+                    </div>
+                    `;
+                }
+                
+                // 显示记录表格
+                if (data.data.records.length > 0) {
+                    html += `<table style="width:100%; border-collapse: collapse; margin-top: 10px;">
+                    <thead>
+                        <tr style="background: #f5f5f5;">
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">日期</th>
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">金额</th>
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">类别</th>
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">地点</th>
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">异常类型</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                    
+                    data.data.records.forEach(record => {
+                    const isAbnormal = data.data.is_month_low || record.alert_type !== '普通消费';
+                    const bgColor = isAbnormal ? 
+                        (record.alert_type === '月总消费过低' ? '#fff3e0' : '#ffeaea') : '#ffffff';
+                    
+                    html += `
+                        <tr style="background: ${bgColor};">
+                        <td style="padding: 8px; border: 1px solid #ddd;">${record.record_date}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">¥${record.amount}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${record.category}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${record.location || '-'}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">
+                            ${isAbnormal ? 
+                            `<span style="padding: 2px 6px; background: ${
+                                record.alert_type === '月总消费过低' ? '#fff3e0' : '#ffeaea'
+                            }; border-radius: 3px; font-size: 12px; color: ${
+                                record.alert_type === '月总消费过低' ? '#fd7e14' : '#dc3545'
+                            };">
+                                ${record.alert_type}
+                            </span>` : 
+                            '<span style="color: #666;">正常</span>'
+                            }
+                        </td>
+                        </tr>`;
+                    });
+                    
+                    html += `</tbody></table>`;
+                } else {
+                    html += '<p style="color: #666; text-align: center; padding: 20px;">本月暂无消费记录</p>';
+                }
+                
+                body.innerHTML = html;
+                } else {
+                body.innerHTML = `<p style="color: red;">错误: ${data.message}</p>`;
+                }
+            } catch (error) {
+                body.innerHTML = `<p style="color: red;">加载失败: ${error.message}</p>`;
+            }
+        }
+
+        function closeSimpleModal() {
+            document.getElementById('simpleModal').style.display = 'none';
+        }
+
+
+        // 加载学生消费排行榜（本月）
+        async function loadStudentRanking(className = '计算机1班', month = '2026-03') {
+            try {
+                console.log(`🏆 正在加载 ${className} 的消费排行榜...`);
+                
+                // 显示加载状态
+                const topTbody = document.getElementById('topSpenders');
+                const lowTbody = document.getElementById('lowSpenders');
+                
+                if (topTbody) {
+                    topTbody.innerHTML = `
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">
+                                <i class="fas fa-spinner fa-spin"></i> 加载中...
+                            </td>
+                        </tr>
+                    `;
+                }
+                
+                if (lowTbody) {
+                    lowTbody.innerHTML = `
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">
+                                <i class="fas fa-spinner fa-spin"></i> 加载中...
+                            </td>
+                        </tr>
+                    `;
+                }
+                
+                // 调用后端接口获取排行榜数据
+                const response = await fetch(
+                    `http://localhost:3000/api/rankings/monthly?className=${encodeURIComponent(className)}&month=${month}`
+                );
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP错误: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('📊 排行榜数据:', data);
+                
+                if (data.success) {
+                    // 渲染消费最高TOP5
+                    renderTopSpenders(data.data.top_spenders || []);
+                    
+                    // 渲染消费最低TOP5
+                    renderLowSpenders(data.data.low_spenders || []);
+                } else {
+                    console.error('排行榜接口返回失败:', data.message);
+                    showFallbackRanking();
+                }
+                
+            } catch (error) {
+                console.error('❌ 加载消费排行榜失败:', error);
+                console.error('错误详情:', error.message);
+                
+                // 如果接口调用失败，显示模拟数据
+                showFallbackRanking();
+            }
+        }
+
+        // 渲染消费最高TOP5
+        function renderTopSpenders(students) {
+            const tbody = document.getElementById('topSpenders');
+            
+            if (!tbody) {
+                console.error('❌ 找不到ID为"topSpenders"的元素');
+                return;
+            }
+            
+            tbody.innerHTML = ''; // 清空原有内容
+            
+            if (!students || students.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">
+                            暂无消费数据
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // 添加排名样式
+            const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32', '#667eea', '#4BC0C0'];
+            
+            students.forEach((student, index) => {
+                const row = document.createElement('tr');
+                const rankColor = rankColors[index] || '#667eea';
+                
+                row.innerHTML = `
+                    <td>
+                        <span class="badge" style="background-color: ${rankColor}; color: white; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: bold;">
+                            ${student.rank || (index + 1)}
+                        </span>
+                    </td>
+                    <td>${student.student_id || ''}</td>
+                    <td>${student.name || ''}</td>
+                    <td class="text-danger" style="font-weight: bold;">
+                        ¥${parseFloat(student.month_consume || 0).toFixed(2)}
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // 渲染消费最低TOP5
+        function renderLowSpenders(students) {
+            const tbody = document.getElementById('lowSpenders');
+            
+            if (!tbody) {
+                console.error('❌ 找不到ID为"lowSpenders"的元素');
+                return;
+            }
+            
+            tbody.innerHTML = ''; // 清空原有内容
+            
+            if (!students || students.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">
+                            暂无消费数据
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // 添加排名样式
+            const rankColors = ['#28a745', '#20c997', '#17a2b8', '#6c757d', '#adb5bd'];
+            
+            students.forEach((student, index) => {
+                const row = document.createElement('tr');
+                const rankColor = rankColors[index] || '#28a745';
+                
+                row.innerHTML = `
+                    <td>
+                        <span class="badge" style="background-color: ${rankColor}; color: white; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: bold;">
+                            ${student.rank || (index + 1)}
+                        </span>
+                    </td>
+                    <td>${student.student_id || ''}</td>
+                    <td>${student.name || ''}</td>
+                    <td class="text-success" style="font-weight: bold;">
+                        ¥${parseFloat(student.month_consume || 0).toFixed(2)}
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // 联系学生
+        function contactStudent(studentId, studentName) {
+            // 跳转到联系页面，并传递学生信息
+            window.location.href = `contact.html?studentId=${encodeURIComponent(studentId)}&studentName=${encodeURIComponent(studentName)}`;
+        }
+
+        // 生成报告
+        function generateReport() {
+            const month = document.getElementById('reportMonth').value;
+            const type = document.getElementById('reportType').value;
+
+            // 模拟下载
+            setTimeout(() => {
+                alert('报告生成完成！开始下载...');
+            }, 1500);
+        }
+
+        // 登出
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'index.html';
+        }       
+    </script>
+    
+    <style>
+        .badge-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .badge-warning {
+            background-color: #ffc107;
+            color: #000;
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园一卡通消费分析系统 - 学生端</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 导航栏 -->
+        <nav class="navbar">
+            <div class="logo">
+                <i class="fas fa-credit-card"></i>
+                <span>校园一卡通消费分析系统</span>
+            </div>
+            <div class="nav-right">
+                <div class="user-info" id="studentInfo">
+                    <i class="fas fa-user-graduate"></i>
+                    <span>张三 | 计算机1班</span>
+                </div>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> 退出登录
+                </button>
+            </div>
+        </nav>
+
+        <!-- 主要内容区 -->
+        <div class="main-content">
+            <div class="row mb-4">
+                <div class="col">
+                    <h3>欢迎回来，<br>这里是您的个人消费分析中心！</h3>
+                </div>
+                <div class="col text-right">
+                    <button class="btn btn-primary" onclick="showAddRecordModal()">
+                        <i class="fas fa-plus"></i> 添加消费记录
+                    </button>
+                    <button class="btn btn-primary" style="margin-left: 20px;" onclick="window.location.href='notifications.html'">
+                        查看我的消息
+                    </button>
+                </div>
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <i class="fas fa-wallet" style="font-size: 2rem; color: #667eea;"></i>
+                    <div class="stat-value">加载中...</div>
+                    <div class="stat-label">本月总消费</div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-utensils" style="font-size: 2rem; color: #4BC0C0;"></i>
+                    <div class="stat-value">加载中...</div>
+                    <div class="stat-label">餐饮占比</div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-calendar-day" style="font-size: 2rem; color: #FF6384;"></i>
+                    <div class="stat-value">加载中...</div>
+                    <div class="stat-label">日均消费</div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-chart-line" style="font-size: 2rem; color: #FF9F40;"></i>
+                    <div class="stat-value">加载中...</div>
+                    <div class="stat-label">相比上月</div>
+                </div>
+            </div>
+
+            <!-- 图表区域 -->
+            <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-chart-line"></i> 月度消费趋势</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="monthlyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-chart-pie"></i> 消费类别分布</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 消费记录表格 -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-receipt"></i> 近期消费记录</h3>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th>金额</th>
+                                <th>类别</th>
+                                <th>地点</th>
+                                <th>备注</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="consumeTable">
+                            <!-- 动态生成行 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 消费建议 -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-lightbulb"></i> 消费建议</h3>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <div class="alert alert-warning">
+                            <h4><i class="fas fa-utensils"></i> 餐饮消费</h4>
+                            <p>建议适当控制外卖频率，多选择食堂就餐。</p>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="alert alert-info">
+                            <h4><i class="fas fa-shopping-bag"></i> 理性购物</h4>
+                            <p>建议设置月度购物预算，不冲动消费。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加消费记录弹窗 -->
+    <div class="modal" id="addRecordModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus"></i> 添加消费记录</h3>
+                <button class="close" onclick="closeAddRecordModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addRecordForm">
+                    <div class="form-group">
+                        <label for="recordAmount"><i class="fas fa-yen-sign"></i> 消费金额</label>
+                        <input type="number" id="recordAmount" class="form-control" placeholder="请输入金额" step="0.01" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="recordCategory"><i class="fas fa-tags"></i> 消费类别</label>
+                        <select id="recordCategory" class="form-control" required>
+                            <option value="餐饮">餐饮</option>
+                            <option value="购物">购物</option>
+                            <option value="娱乐">娱乐</option>
+                            <option value="学习">学习</option>
+                            <option value="交通">交通</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="recordLocation"><i class="fas fa-map-marker-alt"></i> 消费地点</label>
+                        <input type="text" id="recordLocation" class="form-control" placeholder="如：第一食堂、教育超市" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="recordDate"><i class="fas fa-calendar"></i> 消费日期</label>
+                        <input type="date" id="recordDate" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="recordDescription"><i class="fas fa-comment"></i> 备注</label>
+                        <textarea id="recordDescription" class="form-control" rows="3" placeholder="可选备注信息"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAddRecordModal()">取消</button>
+                <button class="btn btn-primary" onclick="submitRecord()">保存记录</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // 从本地存储获取信息
+        let currentStudent = JSON.parse(localStorage.getItem('currentUser'));
+        
+        // 如果没有登录信息，跳回登录页
+        if (!currentStudent.id || currentStudent.role !== 'student') {
+            window.location.href = 'index.html';
+        }
+
+        // 更新页面信息
+        document.getElementById('studentInfo').innerHTML = `
+            <i class="fas fa-user-graduate"></i>
+            <span>${currentStudent.name} | ${currentStudent.className}</span>
+        `;
+
+        // 学生页面数据获取函数
+        async function getStudentData(studentId = 'S002') {
+        try {
+            const response = await fetch(
+            `http://localhost:3000/api/student/consume?studentId=${encodeURIComponent(studentId)}`
+            );
+            if (!response.ok) {
+            throw new Error(`HTTP 错误: ${response.status}`);
+            }
+            const data = await response.json();
+            return data.success ? data.data : null;
+        } catch (error) {
+            console.error('数据获取失败：', error.message);
+            return null;
+        }
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            const studentId = currentStudent.student_id;  
+            const studentData = await getStudentData(studentId);
+            
+            if (studentData) {
+                // 更新统计卡片
+                const statCards = document.querySelectorAll('.stat-card');
+                if (statCards.length >= 4) {
+                statCards[0].querySelector('.stat-value').textContent = `¥${studentData.totalMonth}`;
+                statCards[1].querySelector('.stat-value').textContent = `${studentData.foodRatio}`;
+                statCards[2].querySelector('.stat-value').textContent = `¥${studentData.avgDay}`;
+                statCards[3].querySelector('.stat-value').textContent = `${studentData.diffLastMonth}%`;
+                }
+            }
+        });
+
+        // 打开弹窗
+        function showAddRecordModal() {
+            document.getElementById('addRecordModal').style.display = 'block';
+            // 设置默认日期为今天
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('recordDate').value = today;
+        }
+
+        // 关闭弹窗
+        function closeAddRecordModal() {
+            document.getElementById('addRecordModal').style.display = 'none';
+        }
+        
+        // 提交记录
+        async function submitRecord() {
+            const amount = document.getElementById('recordAmount').value;
+            const category = document.getElementById('recordCategory').value;
+            const location = document.getElementById('recordLocation').value;
+            const recordDate = document.getElementById('recordDate').value;
+            const description = document.getElementById('recordDescription').value;
+            
+            // 简单验证
+            if (!amount || amount <= 0) {
+                alert('请输入有效的金额');
+                return;
+            }
+            
+            if (!location) {
+                alert('请输入消费地点');
+                return;
+            }
+            
+            if (!recordDate) {
+                alert('请选择消费日期');
+                return;
+            }
+            
+            // 准备数据
+            const recordData = {
+                studentId: currentStudent.student_id,
+                amount: parseFloat(amount),
+                category: category,
+                location: location,
+                recordDate: recordDate,
+                description: description
+            };
+            console.log('准备发送的数据:', recordData);
+
+            // 显示加载
+            const submitBtn = document.querySelector('.modal-footer .btn-primary');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 保存中...';
+            
+            try {
+                // 调用后端API
+                const response = await fetch('http://localhost:3000/api/student/consume/add?studentId=${encodeURIComponent(studentId)}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(recordData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('消费记录添加成功！');
+                    closeAddRecordModal(); // 关闭弹窗
+                } else {
+                    alert('添加失败: ' + (result.message || '未知错误'));
+                }
+            } catch (error) {
+                console.error('添加失败:', error);
+                alert('网络错误，请稍后重试');
+            } finally {
+                // 恢复按钮
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '保存记录';
+            }
+        }
+
+        let chart1 = null;
+        
+        async function loadData1() {
+            const studentId = currentStudent.student_id;
+            
+            try {
+                const response = await fetch(`http://localhost:3000/api/student/stats?studentId=${studentId}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    drawChart1(data);
+                } else {
+                    alert('查询失败: ' + (data.error || '未知错误'));
+                }
+            } catch (error) {
+                alert('网络请求失败');
+                console.error(error);
+            }
+        }
+        
+        function drawChart1(data) {
+            const ctx = document.getElementById('monthlyChart').getContext('2d');
+            
+            // 如果已存在图表，先销毁
+            if (chart1) {
+                chart1.destroy();
+            }
+            
+            chart1 = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.months.map(m => `${m.slice(5)}月`), // 显示 "01月"、"02月"
+                    datasets: [{
+                        label: ` ${currentStudent.name} 的月消费`,
+                        data: data.amounts,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        borderWidth: 2,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '消费金额（元）'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '月份'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        let chart2 = null;
+
+        function generateColors(count) {
+            const colors = [];
+            const colorList = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
+            
+            for (let i = 0; i < count; i++) {
+                colors.push(colorList[i % colorList.length]);
+            }
+            
+            return colors;
+        }
+
+
+        async function loadData2() {
+            const studentId = currentStudent.student_id;
+            
+            try {
+                const response = await fetch(`http://localhost:3000/api/student/category-stats?studentId=${studentId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const colors = generateColors(data.categories.length);
+                    drawChart2(data);
+                } else {          
+                    alert('获取数据失败: ' + data.error);
+                }
+            } catch (error) {
+                alert('请求失败，请检查服务器是否运行');
+            }
+        }
+
+        function drawChart2(data) {
+
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            
+            // 如果已有图表，先销毁
+            if (chart2) {
+                chart2.destroy();
+            }
+            
+            // 计算总金额
+            const total = data.amounts.reduce((sum, amount) => sum + amount, 0);
+            
+            // 创建图表
+            chart2 = new Chart(ctx, {
+                type: 'pie', // 饼图
+                data: {
+                    labels: data.categories,
+                    datasets: [{
+                        data: data.amounts,
+                        backgroundColor: data.colors,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label;
+                                    const value = context.raw;
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    return `${label}: ¥${value} (${percentage}%)`;
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: `${data.yearMonth}月消费分布`,
+                            font: { size: 16 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 加载消费记录
+        async function loadRecords() {
+            const studentId = currentStudent.student_id;
+            const response = await fetch(`http://localhost:3000/api/student/recent-records?studentId=${studentId}`);
+            const data = await response.json();
+            
+            const tableBody = document.getElementById('consumeTable');
+            let html = '';
+            
+            if (data.data.length === 0) {
+                html = '<tr><td ="6">暂无消费记录</td></tr>';
+            } else {
+                data.data.forEach(record => {
+                html += `
+                    <tr>
+                    <td>${record.record_date}</td>
+                    <td>¥${record.amount}</td>
+                    <td>${record.category}</td>
+                    <td>${record.location}</td>
+                    <td>${record.description || ''}</td>
+                    <td>
+                        <button class="btn-delete" onclick="deleteRecord(${record.id})">删除</button>
+                    </td>
+                    </tr>
+                `;
+                });
+            }
+            
+            tableBody.innerHTML = html;
+        }
+
+        // 删除记录
+        async function deleteRecord(recordId) {
+            if (!confirm('确定删除？')) return;
+            
+            const response = await fetch(`http://localhost:3000/api/student/delete?id=${recordId}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('删除成功');
+                loadRecords();
+            }
+        }
+
+        
+        // 页面加载时自动获取数据
+        window.onload = function() {
+            loadData1();
+            loadData2();
+            loadRecords();
+        };
+
+        // 登出
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'index.html';
+        }
+    </script>
+    
+    <style>
+        .alert {
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+        .alert-warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        .alert-info {
+            background-color: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+        }
+        .alert h4 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .alert-info h4 {
+            color: #0c5460;
+        }
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        .badge-primary {
+            background-color: #667eea;
+            color: white;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none; /* 默认隐藏，通过JS控制显示 */
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            width: 500px;
+            max-width: 90%;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-delete {
+            padding: 5px 10px;
+            margin: 0 3px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+        .btn-delete {
+            background-color: #f44336;
+            color: white;
+        }
+        .btn-delete:hover {
+            background-color: #d32f2f;
+        }
+    </style>
+</body>
+</html>

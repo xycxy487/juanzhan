@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园一卡通消费分析系统 - 登录</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="login-container">
+            <div class="row">
+                <!-- 左侧欢迎区域 -->
+                <div class="col">
+                    <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                        <div class="text-center" style="padding: 3rem 2rem;">
+                            <i class="fas fa-credit-card" style="font-size: 4rem; margin-bottom: 2rem;"></i>
+                            <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">校园一卡通消费分析系统</h1>
+                            <p style="font-size: 1.1rem; opacity: 0.9;">
+                                智能分析消费数据，助力科学理财
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 右侧登录/注册区域 -->
+                <div class="col">
+                    <div class="card" style="border: none;">
+                        <!-- 标签切换 -->
+                        <div class="tabs" id="authTabs">                         
+                            <!-- 登录表单 -->
+                            <form id="loginForm" class="auth-form">
+                                <h3 class="text-center mb-4">用户登录</h3>
+                                
+                                <div class="form-group">
+                                    <label for="loginId"><i class="fas fa-user"></i> 学号/工号</label>
+                                    <input type="text" id="loginId" class="form-control" placeholder="请输入学号或工号" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="loginPassword"><i class="fas fa-lock"></i> 密码</label>
+                                    <input type="password" id="loginPassword" class="form-control" placeholder="请输入密码" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="loginRole"><i class="fas fa-user-tag"></i> 身份</label>
+                                    <select id="loginRole" class="form-control">
+                                        <option value="student">学生</option>
+                                        <option value="teacher">老师</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group d-flex justify-content-between align-items-center">
+                                    <a href="#" id="forgotPassword" style="color: #667eea; text-decoration: none;">忘记密码？</a>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary btn-block">
+                                    <i class="fas fa-sign-in-alt"></i> 登录
+                                </button>
+                                
+                            </form>
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // 登录表单提交
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const userId = document.getElementById('loginId').value;
+            const password = document.getElementById('loginPassword').value;
+            const role = document.getElementById('loginRole').value;
+            
+            // 显示加载状态
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 登录中...';
+            submitBtn.disabled = true;
+            
+            try {
+                // 调用后端登录API
+                const response = await fetch('http://localhost:3000/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include', 
+                    body: JSON.stringify({
+                        student_id: userId,
+                        password: password,
+                        role: role
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 登录成功，存储用户信息
+                    localStorage.setItem('currentUser', JSON.stringify(data.data));
+                    
+                    // 根据角色跳转
+                    if (role === 'student') {
+                        window.location.href = 'student.html';
+                    } else {
+                        window.location.href = 'teacher.html';
+                    }
+                } else {
+                    // 登录失败
+                    alert('登录失败: ' + data.message);
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('登录请求失败:', error);
+                alert('网络错误，请稍后重试');
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // 忘记密码
+        document.getElementById('forgotPassword').addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('请联系系统管理员重置密码。');
+        });
+    </script>
+</body>
+</html>
